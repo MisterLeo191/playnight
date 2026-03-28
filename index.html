@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NightPlay</title>
-  <meta name="theme-color" content="#0f1724" />
+  <meta name="theme-color" content="#f6f1e8" />
   <meta name="description" content="NightPlay, party app multijoueur avec Firebase et Vercel." />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,18 +16,20 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
     :root {
-      --bg: #09111b;
-      --panel: rgba(14, 22, 35, 0.9);
-      --panel-soft: rgba(255, 255, 255, 0.045);
-      --line: rgba(255, 255, 255, 0.09);
-      --text: #f4f7fb;
-      --muted: rgba(244, 247, 251, 0.62);
-      --green: #b1ff66;
-      --blue: #63d9ff;
-      --pink: #ff7eb3;
-      --danger: #ff7f8e;
-      --radius: 28px;
-      --shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
+      --bg: #f6f1e8;
+      --paper: rgba(255, 252, 246, 0.92);
+      --paper-soft: rgba(255, 249, 241, 0.78);
+      --line: rgba(23, 32, 51, 0.1);
+      --line-strong: rgba(23, 32, 51, 0.18);
+      --text: #152033;
+      --muted: rgba(21, 32, 51, 0.62);
+      --green: #ff6b4a;
+      --blue: #11867e;
+      --pink: #ffca63;
+      --danger: #d94b5f;
+      --radius: 30px;
+      --shadow: 0 32px 90px rgba(38, 30, 16, 0.12);
+      --shadow-soft: 0 16px 40px rgba(38, 30, 16, 0.08);
       --font-head: "Sora", sans-serif;
       --font-body: "Manrope", sans-serif;
     }
@@ -38,24 +40,30 @@
       font-family: var(--font-body);
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(255, 126, 179, 0.16), transparent 22%),
-        radial-gradient(circle at top right, rgba(99, 217, 255, 0.15), transparent 24%),
-        radial-gradient(circle at bottom center, rgba(177, 255, 102, 0.12), transparent 26%),
-        linear-gradient(180deg, #08111a, #0c1421 46%, #070d14);
+        radial-gradient(circle at top left, rgba(255, 107, 74, 0.12), transparent 20%),
+        radial-gradient(circle at top right, rgba(17, 134, 126, 0.1), transparent 24%),
+        radial-gradient(circle at bottom center, rgba(255, 202, 99, 0.16), transparent 26%),
+        linear-gradient(180deg, #f9f4eb, #f2ebdf 50%, #ece4d8);
       overflow-x: hidden;
     }
     button, input, textarea { font: inherit; }
     button { border: 0; cursor: pointer; }
-    #app { max-width: 1280px; margin: 0 auto; padding: 24px 18px 40px; }
-    .shell { display: grid; grid-template-columns: 340px minmax(0, 1fr) 340px; gap: 22px; align-items: start; }
+    #app { position: relative; z-index: 1; max-width: 1020px; margin: 0 auto; padding: 26px 18px 44px; }
+    .shell { display: grid; justify-content: center; width: 100%; }
     .stack { display: grid; gap: 22px; }
+    .home-rail { width: min(100%, 940px); }
+    .center-rail { width: min(100%, 940px); }
+    .social-rail { display: none !important; }
+    .shell.pre-room .center-rail { display: none; }
+    .shell.room-active .home-rail { display: none; }
+    .shell.room-active .center-rail { display: grid; }
     .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 22px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,250,243,0.98));
+      border: 1px solid rgba(255,255,255,0.98);
+      border-radius: 34px;
+      padding: 28px;
+      box-shadow: 0 26px 70px rgba(56, 40, 18, 0.09);
+      backdrop-filter: blur(14px);
       position: relative;
       overflow: hidden;
     }
@@ -63,52 +71,95 @@
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(165deg, rgba(255, 255, 255, 0.04), transparent 36%);
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.62), transparent 34%);
       pointer-events: none;
     }
     .hero {
-      padding: 28px;
+      padding: 36px;
       background:
-        linear-gradient(135deg, rgba(255, 126, 179, 0.16), transparent 38%),
-        linear-gradient(180deg, rgba(99, 217, 255, 0.12), transparent 42%),
-        var(--panel);
+        radial-gradient(circle at top left, rgba(255, 107, 74, 0.14), transparent 28%),
+        radial-gradient(circle at top right, rgba(17, 134, 126, 0.12), transparent 26%),
+        linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,247,238,0.99));
     }
-    .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--green); font-weight: 800; margin-bottom: 12px; }
+    .hero-home-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+      gap: 22px;
+      align-items: stretch;
+      margin-top: 28px;
+    }
+    .hero-home-copy,
+    .entry-card {
+      border-radius: 28px;
+      border: 1px solid rgba(23, 32, 51, 0.08);
+      background: rgba(255, 255, 255, 0.72);
+      padding: 22px;
+      box-shadow: var(--shadow-soft);
+    }
+    .home-points {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .home-point {
+      padding: 16px 18px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.74);
+      border: 1px solid rgba(23, 32, 51, 0.08);
+    }
+    .home-point strong {
+      display: block;
+      font-size: 17px;
+      margin-bottom: 6px;
+      font-weight: 800;
+    }
+    .home-point span {
+      display: block;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--blue); font-weight: 800; margin-bottom: 12px; }
     .hero-top { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
     .brand { font-family: var(--font-head); font-size: clamp(38px, 5vw, 58px); line-height: 0.92; letter-spacing: -0.06em; margin-bottom: 10px; }
     .brand span { color: var(--green); }
-    .hero-copy { max-width: 28ch; color: var(--muted); line-height: 1.7; font-size: 14px; }
+    .hero-copy { max-width: 32ch; color: var(--muted); line-height: 1.7; font-size: 15px; }
     .status-pill {
       display: inline-flex; align-items: center; gap: 9px; padding: 11px 14px; border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(23, 32, 51, 0.1); background: rgba(255, 255, 255, 0.72);
       font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; white-space: nowrap;
     }
     .stats, .games, .sound-grid { display: grid; gap: 12px; }
     .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .stat { border-radius: 22px; border: 1px solid var(--line); background: var(--panel-soft); padding: 16px; }
+    .stats-soft .stat { background: rgba(255,255,255,0.78); }
+    .stat { border-radius: 22px; border: 1px solid rgba(23, 32, 51, 0.08); background: rgba(255,255,255,0.72); padding: 18px; box-shadow: var(--shadow-soft); }
     .stat strong { display: block; font-size: 28px; line-height: 1; margin-bottom: 8px; font-weight: 800; }
     .stat span { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
     .section-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+    .section-head.compact h2,
+    .section-head.compact h3 { font-size: 22px; }
     .section-head h2, .section-head h3 { font-size: 28px; line-height: 1; font-weight: 800; letter-spacing: -0.04em; }
     .section-head small { color: var(--muted); font-size: 12px; line-height: 1.4; text-align: right; max-width: 120px; }
     .field { display: grid; gap: 8px; }
     .field label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); font-weight: 800; }
     .input, .textarea {
-      width: 100%; border-radius: 18px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.055);
+      width: 100%; border-radius: 20px; border: 1px solid rgba(23, 32, 51, 0.1); background: rgba(255, 255, 255, 0.84);
       color: var(--text); padding: 15px 16px; outline: none; transition: 0.18s ease;
     }
     .textarea { min-height: 108px; resize: vertical; }
-    .input:focus, .textarea:focus { border-color: rgba(177, 255, 102, 0.4); box-shadow: 0 0 0 3px rgba(177, 255, 102, 0.08); background: rgba(255, 255, 255, 0.07); }
+    .input:focus, .textarea:focus { border-color: rgba(17, 134, 126, 0.35); box-shadow: 0 0 0 4px rgba(17, 134, 126, 0.08); background: rgba(255, 255, 255, 0.96); }
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row-split > * { flex: 1 1 180px; }
     .btn { border-radius: 18px; padding: 14px 18px; font-weight: 800; transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease; }
     .btn:hover { transform: translateY(-2px); }
     .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
-    .btn-primary { background: linear-gradient(135deg, var(--green), #dcffa7); color: #09111b; box-shadow: 0 14px 30px rgba(177, 255, 102, 0.2); }
-    .btn-secondary { background: rgba(255, 255, 255, 0.055); border: 1px solid var(--line); color: var(--text); }
-    .btn-pink { background: linear-gradient(135deg, var(--pink), #ffa9cc); color: #fff; box-shadow: 0 14px 30px rgba(255, 126, 179, 0.18); }
-    .btn-blue { background: linear-gradient(135deg, var(--blue), #bff2ff); color: #08111b; box-shadow: 0 14px 30px rgba(99, 217, 255, 0.16); }
-    .btn-ghost { background: transparent; border: 1px dashed rgba(255, 255, 255, 0.16); color: var(--muted); }
+    .btn-primary { background: linear-gradient(135deg, var(--green), #ff8d5f); color: #fff; box-shadow: 0 16px 28px rgba(255, 107, 74, 0.22); }
+    .btn-secondary { background: rgba(255, 255, 255, 0.86); border: 1px solid rgba(23, 32, 51, 0.1); color: var(--text); }
+    .btn-pink { background: linear-gradient(135deg, #1d9387, var(--blue)); color: #fff; box-shadow: 0 16px 28px rgba(17, 134, 126, 0.18); }
+    .btn-blue { background: linear-gradient(135deg, #ffe3a6, var(--pink)); color: #5a3d04; box-shadow: 0 16px 28px rgba(255, 202, 99, 0.2); }
+    .btn-ghost { background: transparent; border: 1px dashed rgba(23, 32, 51, 0.18); color: var(--muted); }
     .btn-small { padding: 10px 13px; border-radius: 14px; font-size: 13px; }
+    .support-hidden { display: none !important; }
     .room-code { text-align: center; background: linear-gradient(135deg, rgba(177, 255, 102, 0.15), rgba(99, 217, 255, 0.12)), rgba(255, 255, 255, 0.03); }
     .room-code strong { display: block; font-size: clamp(34px, 7vw, 54px); line-height: 1; font-weight: 800; letter-spacing: 0.22em; padding-left: 0.22em; margin-bottom: 10px; cursor: pointer; }
     .hint { color: var(--muted); font-size: 12px; line-height: 1.55; }
@@ -122,18 +173,163 @@
     .player-meta strong { display: block; font-size: 15px; margin-bottom: 4px; }
     .player-meta span, .message span, .suggestion span { color: var(--muted); font-size: 11px; }
     .score { font-weight: 800; color: var(--green); white-space: nowrap; }
-    .lobby-shell { display: grid; gap: 18px; }
-    .lobby-top { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 18px; }
+    .lobby-shell { display: grid; gap: 20px; }
+    .lobby-topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 16px 18px;
+      border-radius: 26px;
+      border: 1px solid rgba(23, 32, 51, 0.08);
+      background: rgba(255,255,255,.86);
+      box-shadow: var(--shadow-soft);
+    }
+    .room-identity {
+      display: grid;
+      gap: 8px;
+    }
+    .room-identity strong {
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+    .topbar-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .lobby-main { display: grid; gap: 18px; }
+    .lobby-status {
+      border-radius: 30px;
+      border: 1px solid rgba(23,32,51,.08);
+      background: linear-gradient(135deg, rgba(255, 107, 74, 0.12), rgba(255, 202, 99, 0.18)), rgba(255,255,255,.9);
+      padding: 30px 24px;
+      text-align: center;
+      display: grid;
+      gap: 10px;
+      box-shadow: var(--shadow-soft);
+    }
+    .lobby-status .mini {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font-weight: 800;
+    }
+    .lobby-status .main {
+      font-size: clamp(42px, 5vw, 66px);
+      line-height: .95;
+      font-weight: 800;
+      letter-spacing: -.05em;
+    }
+    .lobby-status p {
+      max-width: 34ch;
+      margin: 0 auto;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+    .lobby-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+      gap: 18px;
+      align-items: start;
+    }
+    .host-panel {
+      border-radius: 28px;
+      border: 1px solid rgba(23,32,51,.08);
+      background: rgba(255,255,255,.88);
+      padding: 22px;
+      display: grid;
+      gap: 14px;
+      box-shadow: var(--shadow-soft);
+    }
+    .host-panel h4 {
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .host-panel p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .tab-shell {
+      border-radius: 28px;
+      border: 1px solid rgba(23,32,51,.08);
+      background: rgba(255,255,255,.88);
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+    }
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      padding: 10px;
+      border-bottom: 1px solid rgba(23,32,51,.08);
+      background: rgba(23,32,51,.025);
+    }
+    .tab-btn {
+      border-radius: 14px;
+      padding: 10px 14px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 6px 18px rgba(23,32,51,.08);
+    }
+    .tab-panel {
+      display: none;
+      padding: 18px;
+    }
+    .tab-panel.active {
+      display: grid;
+      gap: 14px;
+    }
+    .utility-panel {
+      display: grid;
+      gap: 16px;
+    }
+    .utility-tabs {
+      display: inline-flex;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 18px;
+      background: rgba(23,32,51,.04);
+      width: fit-content;
+    }
+    .utility-tab {
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .utility-tab.active {
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 8px 18px rgba(23,32,51,.08);
+    }
+    .utility-view { display: none; gap: 14px; }
+    .utility-view.active { display: grid; }
     .wait-card, .host-card, .subpanel {
-      border-radius: 26px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.045); padding: 22px;
+      border-radius: 28px; border: 1px solid rgba(23,32,51,.08); background: rgba(255, 255, 255, 0.84); padding: 22px; box-shadow: var(--shadow-soft);
     }
     .wait-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
     .wait-title strong, .host-card strong, .subpanel h4 { display: block; font-size: 18px; font-weight: 800; }
     .host-card { display: grid; gap: 14px; }
     .host-card p { color: var(--muted); font-size: 13px; line-height: 1.55; }
     .wait-stage {
-      border-radius: 24px; padding: 26px 20px; text-align: center; background: linear-gradient(135deg, rgba(255, 126, 179, 0.16), rgba(99, 217, 255, 0.12)), rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.1); min-height: 270px; display: grid; align-content: center; gap: 10px;
+      border-radius: 26px; padding: 30px 22px; text-align: center; background: linear-gradient(135deg, rgba(255, 107, 74, 0.12), rgba(17, 134, 126, 0.08)), rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(23,32,51,.08); min-height: 280px; display: grid; align-content: center; gap: 10px; box-shadow: var(--shadow-soft);
     }
     .wait-stage .mini, .game-hero .kicker { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.16em; font-weight: 800; margin-bottom: 8px; }
     .wait-stage .main, .game-hero .title { font-size: clamp(42px, 5vw, 66px); line-height: 0.95; font-weight: 800; letter-spacing: -0.05em; }
@@ -141,10 +337,10 @@
     .wait-stage p, .game-hero .desc { max-width: 30ch; margin: 0 auto; color: var(--muted); line-height: 1.65; font-size: 14px; }
     .games { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .game {
-      border-radius: 24px; border: 1px solid var(--line); background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 45%), rgba(255, 255, 255, 0.04);
-      min-height: 148px; padding: 18px; text-align: left;
+      border-radius: 28px; border: 1px solid rgba(23,32,51,.08); background: linear-gradient(160deg, rgba(255,255,255,.96), rgba(255,248,240,.82));
+      min-height: 164px; padding: 20px; text-align: left; box-shadow: var(--shadow-soft);
     }
-    .game-badge { display: inline-flex; width: 42px; height: 42px; align-items: center; justify-content: center; border-radius: 14px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; }
+    .game-badge { display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 14px; background: linear-gradient(135deg, rgba(255,107,74,.12), rgba(17,134,126,.1)); border: 1px solid rgba(23,32,51,.08); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; }
     .game strong { display: block; margin: 14px 0 8px; font-size: 22px; line-height: 1.05; font-weight: 800; }
     .game p { color: var(--muted); font-size: 13px; line-height: 1.55; }
     .chat-list, .suggestions { min-height: 180px; max-height: 280px; overflow: auto; padding-right: 4px; }
@@ -154,150 +350,233 @@
     .score-row span { color: var(--muted); font-size: 11px; }
     .sound-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .sound {
-      min-height: 88px; border-radius: 20px; border: 1px solid var(--line); background: linear-gradient(135deg, rgba(99, 217, 255, 0.16), rgba(255, 126, 179, 0.16)), rgba(255, 255, 255, 0.04);
-      color: var(--text); padding: 16px; text-align: left;
+      min-height: 88px; border-radius: 22px; border: 1px solid rgba(23,32,51,.08); background: linear-gradient(135deg, rgba(255,107,74,.12), rgba(255,202,99,.16)), rgba(255,255,255,.82);
+      color: var(--text); padding: 16px; text-align: left; box-shadow: var(--shadow-soft);
     }
     .sound strong { display: block; margin-bottom: 6px; font-size: 15px; }
     .sound span { color: var(--muted); font-size: 11px; }
     .game-screen { display: none; gap: 18px; }
     .game-screen.active { display: grid; }
     .game-hero {
-      border-radius: 28px; border: 1px solid rgba(255, 255, 255, 0.1); background: linear-gradient(135deg, rgba(255, 126, 179, 0.16), rgba(99, 217, 255, 0.12)), rgba(255, 255, 255, 0.04);
-      padding: 26px 22px; text-align: center;
+      border-radius: 32px; border: 1px solid rgba(23,32,51,.08); background: linear-gradient(135deg, rgba(255, 107, 74, 0.12), rgba(17, 134, 126, 0.08)), rgba(255,255,255,.9);
+      padding: 28px 24px; text-align: center; box-shadow: var(--shadow-soft);
+    }
+    .vote-progress {
+      margin: 18px auto 0;
+      max-width: 520px;
+      text-align: left;
+      padding: 14px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(23,32,51,.08);
+      background: rgba(255,255,255,.82);
+    }
+    .vote-progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .vote-progress-track {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(23,32,51,.08);
+      overflow: hidden;
+      border: 1px solid rgba(23,32,51,.05);
+    }
+    .vote-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+      box-shadow: 0 0 18px rgba(255,107,74,.18);
+      transition: width .35s ease;
     }
     .game-layout { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 18px; }
     .question-card {
-      border-radius: 22px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); min-height: 160px; display: flex; align-items: center; justify-content: center;
-      text-align: center; padding: 24px; font-size: 24px; line-height: 1.45; font-weight: 700; letter-spacing: -0.03em;
+      border-radius: 24px; border: 1px solid rgba(23,32,51,.08); background: rgba(255,255,255,.84); min-height: 170px; display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 28px; font-size: 26px; line-height: 1.45; font-weight: 700; letter-spacing: -0.03em; box-shadow: var(--shadow-soft);
     }
     .choice {
-      border-radius: 18px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.05); padding: 16px; text-align: left; color: var(--text);
+      border-radius: 20px; border: 1px solid rgba(23,32,51,.08); background: rgba(255,255,255,.82); padding: 16px; text-align: left; color: var(--text); box-shadow: var(--shadow-soft);
     }
-    .choice.selected { border-color: rgba(177, 255, 102, 0.5); background: rgba(177, 255, 102, 0.12); }
+    .choice.selected { border-color: rgba(17,134,126,.24); background: linear-gradient(135deg, rgba(17,134,126,.1), rgba(255,255,255,.92)); }
     .choice strong { display: block; margin-bottom: 6px; font-size: 18px; }
     .photo-box {
-      min-height: 360px; display: grid; place-items: center; padding: 16px; border-radius: 22px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04);
+      min-height: 360px; display: grid; place-items: center; padding: 16px; border-radius: 24px; border: 1px solid rgba(23,32,51,.08); background: rgba(255,255,255,.84); box-shadow: var(--shadow-soft);
     }
     .photo-box img { width: 100%; max-height: 330px; object-fit: cover; border-radius: 20px; }
-    .upload-box { border-radius: 22px; border: 1px dashed rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.03); padding: 18px; text-align: center; margin-bottom: 14px; }
-    .map-wrap { height: 340px; overflow: hidden; border-radius: 24px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); }
+    .upload-box { border-radius: 24px; border: 1px dashed rgba(23,32,51,.18); background: rgba(255,255,255,.68); padding: 18px; text-align: center; margin-bottom: 14px; }
+    .map-wrap { height: 340px; overflow: hidden; border-radius: 24px; border: 1px solid rgba(23,32,51,.08); background: rgba(255,255,255,.84); box-shadow: var(--shadow-soft); }
     #map { width: 100%; height: 100%; }
-    .empty { border-radius: 18px; border: 1px dashed rgba(255, 255, 255, 0.16); padding: 18px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .empty { border-radius: 20px; border: 1px dashed rgba(23,32,51,.16); padding: 18px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6; background: rgba(255,255,255,.55); }
     .toast {
       position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 120%); min-width: 220px; max-width: min(92vw, 480px); padding: 14px 18px;
-      border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(8, 13, 20, 0.94); text-align: center; box-shadow: var(--shadow);
+      border-radius: 999px; border: 1px solid rgba(23,32,51,.08); background: rgba(255,252,246,.97); text-align: center; box-shadow: var(--shadow); color: var(--text);
       transition: transform 0.25s ease; z-index: 30; font-weight: 700;
     }
     .toast.show { transform: translate(-50%, 0); }
     .hidden { display: none !important; }
     @media (max-width: 1180px) {
-      .shell { grid-template-columns: 1fr; }
-      .lobby-top, .game-layout { grid-template-columns: 1fr; }
+      .hero-home-grid,
+      .game-layout,
+      .lobby-actions { grid-template-columns: 1fr; }
       .hero-copy { max-width: none; }
     }
     @media (max-width: 760px) {
       #app { padding: 12px 10px 28px; }
-      .panel, .hero { padding: 16px; border-radius: 22px; }
+      .panel, .hero { padding: 18px; border-radius: 24px; }
       .hero-top, .section-head { flex-direction: column; }
       .section-head small { max-width: none; text-align: left; }
       .stats, .games, .sound-grid { grid-template-columns: 1fr; }
+      .hero-home-grid { gap: 16px; }
       .room-code strong { letter-spacing: 0.16em; padding-left: 0.16em; }
+      .tab-bar, .utility-tabs { overflow: auto; width: 100%; }
+      .row-split > * { flex-basis: 100%; }
     }
   </style>
 </head>
 <body>
   <div class="toast" id="toast"></div>
   <div id="app">
-    <div class="shell">
-      <div class="stack">
-        <section class="panel hero">
+    <div class="shell" id="appShell">
+      <div class="stack home-rail">
+        <section class="panel hero hero-home">
           <div class="eyebrow">Firebase + Vercel</div>
           <div class="hero-top">
             <div>
               <div class="brand">Night<span>Play</span></div>
-              <p class="hero-copy">Lobby d'attente propre, host control clair, chat en live, puis teleport collectif dans le jeu.</p>
+              <p class="hero-copy">Cree la room, laisse la team se poser dans le lobby, puis fais basculer tout le monde dans le meme jeu au meme moment.</p>
             </div>
             <div class="status-pill"><span id="connDot">●</span><span id="connLabel">Connexion...</span></div>
           </div>
-          <div class="stats">
-            <div class="stat"><strong id="statPlayers">0</strong><span>joueurs</span></div>
-            <div class="stat"><strong id="statMessages">0</strong><span>messages</span></div>
-            <div class="stat"><strong id="statSuggestions">0</strong><span>suggestions</span></div>
-            <div class="stat"><strong id="statMode">Lobby</strong><span>mode actuel</span></div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-head"><h2>Profil & Room</h2><small>entree rapide</small></div>
-          <div class="stack" style="gap:12px;">
-            <div class="field"><label for="pseudoInput">Pseudo</label><input class="input" id="pseudoInput" maxlength="24" placeholder="Ton blaze de soiree" /></div>
-            <div class="field"><label for="avatarInput">Photo / avatar</label><input class="input" id="avatarInput" type="file" accept="image/*" /></div>
-            <div class="row">
-              <button class="btn btn-primary" id="createBtn">Creer une room</button>
-              <button class="btn btn-secondary" id="joinBtn">Rejoindre une room</button>
+          <div class="hero-home-grid">
+            <div class="hero-home-copy">
+              <div class="section-head compact">
+                <h2>Avant la room</h2>
+                <small>une seule entree, puis le lobby prend le relais</small>
+              </div>
+              <div class="home-points">
+                <div class="home-point">
+                  <strong>Un debut net</strong>
+                  <span>Pseudo, avatar si tu veux, et tu crees ou rejoins la room sans te perdre dans l'interface.</span>
+                </div>
+                <div class="home-point">
+                  <strong>Un vrai lobby</strong>
+                  <span>Le groupe attend ensemble avec les joueurs, le chat, les suggestions et un panneau host clair.</span>
+                </div>
+                <div class="home-point">
+                  <strong>Transition collective</strong>
+                  <span>Quand l'hote choisit la manche, tout le monde est envoye sur le meme ecran de jeu.</span>
+                </div>
+              </div>
+              <div class="stats stats-soft">
+                <div class="stat"><strong id="statPlayers">0</strong><span>joueurs</span></div>
+                <div class="stat"><strong id="statMessages">0</strong><span>messages</span></div>
+                <div class="stat"><strong id="statSuggestions">0</strong><span>suggestions</span></div>
+                <div class="stat"><strong id="statMode">Lobby</strong><span>mode actuel</span></div>
+              </div>
             </div>
-            <div class="field"><label for="joinCodeInput">Code room</label><input class="input" id="joinCodeInput" maxlength="6" placeholder="Ex: FETE" /></div>
+            <div class="entry-card">
+              <div class="section-head compact"><h2>Entrer dans la room</h2><small>rapide, lisible, sans scroll inutile</small></div>
+              <div class="stack" style="gap:14px;">
+                <div class="field"><label for="pseudoInput">Pseudo</label><input class="input" id="pseudoInput" maxlength="24" placeholder="Ton blaze de soiree" /></div>
+                <div class="field"><label for="avatarInput">Photo / avatar</label><input class="input" id="avatarInput" type="file" accept="image/*" /></div>
+                <div class="field"><label for="joinCodeInput">Code room</label><input class="input" id="joinCodeInput" maxlength="6" placeholder="Ex: FETE" /></div>
+                <div class="row row-split">
+                  <button class="btn btn-primary" id="createBtn">Creer une room</button>
+                  <button class="btn btn-secondary" id="joinBtn">Rejoindre</button>
+                </div>
+              </div>
+            </div>
           </div>
-        </section>
-
-        <section class="panel room-code">
-          <div class="eyebrow">Code de la room</div>
-          <strong id="roomCode">----</strong>
-          <p class="hint">Clique pour copier le code, ou partage le lien direct de la room.</p>
-          <div class="row" style="justify-content:center;">
-            <button class="btn btn-secondary btn-small" id="copyBtn">Copier</button>
-            <button class="btn btn-blue btn-small" id="shareBtn">Partager</button>
+          <div class="support-hidden">
+            <div class="room-code">
+              <strong id="roomCode">----</strong>
+              <button class="btn btn-secondary btn-small" id="copyBtn" type="button">Copier</button>
+              <button class="btn btn-blue btn-small" id="shareBtn" type="button">Partager</button>
+            </div>
+            <div id="playersCount">0 connectes</div>
+            <div class="players" id="playersList"><div class="empty">Cree une room pour voir les joueurs apparaitre ici.</div></div>
+            <div class="row" style="margin-top:12px;"><button class="btn btn-ghost btn-small" id="leaveBtn" type="button">Quitter la room</button></div>
           </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-head"><h2>Joueurs</h2><small id="playersCount">0 connectes</small></div>
-          <div class="players" id="playersList"><div class="empty">Cree une room pour voir les joueurs apparaitre ici.</div></div>
-          <div class="row" style="margin-top:12px;"><button class="btn btn-ghost btn-small" id="leaveBtn">Quitter la room</button></div>
         </section>
       </div>
 
-      <div class="stack">
+      <div class="stack center-rail">
         <section class="panel" id="lobbyScreen">
-          <div class="section-head"><h2>Lobby</h2><small>host choisit, tout le monde attend ici</small></div>
+          <div class="section-head"><h2>Lobby</h2><small id="lobbyModeSub">la room avant le jeu</small></div>
           <div class="lobby-shell">
-            <div class="lobby-top">
-              <div class="wait-card">
-                <div class="wait-title">
-                  <div>
-                    <strong id="lobbyModeTitle">Salle d'attente</strong>
-                    <p class="hint" id="lobbyModeSub">Les joueurs discutent ici pendant que l'hote choisit le prochain jeu.</p>
-                  </div>
-                  <div class="status-pill" id="hostBadge">Host: aucun</div>
-                </div>
-                <div class="wait-stage">
-                  <div class="mini">joueur au centre</div>
-                  <div class="main" id="focusName">Tout le monde</div>
-                  <p id="focusText">Des que l'hote lance une manche, tous les joueurs sont envoyes sur le meme ecran de jeu.</p>
-                  <div class="timer" id="sharedTimer">00</div>
+            <div class="lobby-topbar">
+              <div class="room-identity">
+                <span class="hint" id="lobbyModeTitle">Room</span>
+                <strong id="sidebarRoomCode">----</strong>
+                <div class="row">
+                  <button class="btn btn-secondary btn-small" id="sidebarCopyBtn">Copier</button>
+                  <button class="btn btn-blue btn-small" id="sidebarShareBtn">Partager</button>
+                  <button class="btn btn-ghost btn-small" id="sidebarLeaveBtn">Quitter</button>
                 </div>
               </div>
-
-              <div class="host-card">
-                <div>
-                  <strong>Console hote</strong>
-                  <p>Seul l'hote peut lancer une manche, passer au joueur suivant ou quitter le jeu pour tout le monde.</p>
-                </div>
-                <div class="row">
-                  <button class="btn btn-primary" id="nextBtn">Prochain joueur</button>
-                  <button class="btn btn-secondary" id="exitBtn">Retour lobby</button>
-                </div>
-                <div class="hint" id="hostHint">Si tu n'es pas l'hote, tu attends ici et tu peux discuter dans le chat.</div>
+              <div class="topbar-meta">
+                <div class="status-pill" id="hostBadge">Host: aucun</div>
+                <div class="status-pill" id="playersPill">0 joueurs</div>
               </div>
             </div>
 
-            <div>
-              <div class="section-head" style="margin-bottom:14px;"><h3>Choix des jeux</h3><small>host uniquement</small></div>
-              <div class="games">
-                <button class="game" data-game="truth"><span class="game-badge">A/V</span><strong>Action ou Verite</strong><p>Joueur cible, timer commun, question visible pour tous et vote de categorie.</p></button>
-                <button class="game" data-game="photo"><span class="game-badge">PHOTO</span><strong>Photo Roulette</strong><p>Tout le monde envoie une photo, puis chaque vote apparait en direct.</p></button>
-                <button class="game" data-game="story"><span class="game-badge">V/F</span><strong>Anecdote Vrai/Faux</strong><p>Le groupe suit la meme anecdote et vote ensemble sur le reveal.</p></button>
-                <button class="game" data-game="geo"><span class="game-badge">MAP</span><strong>Retrouve ta team</strong><p>Carte live, positions volontaires et point de rendez-vous calcule.</p></button>
+            <div class="lobby-main">
+              <div class="lobby-status">
+                <div class="mini">salle d'attente</div>
+                <div class="main" id="focusName">Tout le monde</div>
+                <p id="focusText">Des que l'hote lance une manche, tous les joueurs sont envoyes sur le meme ecran de jeu.</p>
+                <div class="timer" id="sharedTimer">00</div>
+              </div>
+
+              <div class="lobby-actions">
+                <div class="tab-shell">
+                  <div class="tab-bar">
+                    <button class="tab-btn active" data-lobby-tab="players">Joueurs</button>
+                    <button class="tab-btn" data-lobby-tab="chat">Chat</button>
+                    <button class="tab-btn" data-lobby-tab="suggestions">Suggestions</button>
+                  </div>
+
+                  <div class="tab-panel active" id="tab-players">
+                    <div class="section-head" style="margin-bottom:0;"><h3 style="font-size:20px;">Joueurs connectes</h3><small>la room en direct</small></div>
+                    <div class="players" id="sidebarPlayersList"><div class="empty">Les joueurs apparaitront ici.</div></div>
+                  </div>
+
+                  <div class="tab-panel" id="tab-chat">
+                    <div class="chat-list" id="sidebarChatList"><div class="empty">Le chat de room apparait ici.</div></div>
+                    <textarea class="textarea" id="sidebarChatInput" placeholder="Ecris dans le chat..." style="min-height:84px;"></textarea>
+                    <button class="btn btn-primary" id="sidebarChatBtn">Envoyer</button>
+                  </div>
+
+                  <div class="tab-panel" id="tab-suggestions">
+                    <div class="suggestions" id="sidebarSuggestionsList"><div class="empty">Les suggestions apparaitront ici.</div></div>
+                    <textarea class="textarea" id="sidebarSuggestInput" placeholder="Une idee de jeu..." style="min-height:84px;"></textarea>
+                    <button class="btn btn-pink" id="sidebarSuggestBtn">Envoyer</button>
+                  </div>
+                </div>
+
+                <div class="host-panel">
+                  <div>
+                    <h4 style="margin-bottom:8px;">Console hote</h4>
+                    <p id="hostHint">Si tu n'es pas l'hote, tu attends ici et tu peux discuter dans le chat.</p>
+                  </div>
+                  <div class="row">
+                    <button class="btn btn-primary" id="nextBtn">Prochain joueur</button>
+                    <button class="btn btn-secondary" id="exitBtn">Retour lobby</button>
+                  </div>
+                  <div>
+                    <div class="section-head" style="margin-bottom:14px;"><h3 style="font-size:20px;">Choix des jeux</h3><small>host uniquement</small></div>
+                    <div class="games">
+                      <button class="game" data-game="truth"><span class="game-badge">A/V</span><strong>Action ou Verite</strong><p>Joueur cible, timer commun, question visible pour tous et vote de categorie.</p></button>
+                      <button class="game" data-game="photo"><span class="game-badge">PHOTO</span><strong>Photo Roulette</strong><p>Tout le monde envoie une photo, puis chaque vote apparait en direct.</p></button>
+                      <button class="game" data-game="story"><span class="game-badge">V/F</span><strong>Anecdote Vrai/Faux</strong><p>Le groupe suit la meme anecdote et vote ensemble sur le reveal.</p></button>
+                      <button class="game" data-game="geo"><span class="game-badge">MAP</span><strong>Retrouve ta team</strong><p>Carte live, positions volontaires et point de rendez-vous calcule.</p></button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -310,6 +589,15 @@
             <div class="title" id="gameFocusName">Tout le monde</div>
             <div class="desc" id="gameQuestion">L'hote a lance une manche. Tout le monde suit ici en direct.</div>
             <div class="countdown" id="gameTimer">00</div>
+            <div class="vote-progress">
+              <div class="vote-progress-label">
+                <span id="voteProgressText">0 / 0 a vote</span>
+                <span id="voteProgressPercent">0%</span>
+              </div>
+              <div class="vote-progress-track">
+                <div class="vote-progress-fill" id="voteProgressFill"></div>
+              </div>
+            </div>
           </div>
           <div class="game-layout">
             <div class="subpanel" id="gameMainPanel">
@@ -321,51 +609,55 @@
               <div class="empty">Les controles du jeu apparaitront ici.</div>
             </div>
           </div>
+          <div class="row">
+            <button class="btn btn-ghost" id="gameLeaveBtn">Quitter la room</button>
+          </div>
         </section>
 
-        <section class="panel">
-          <div class="section-head"><h2>Map & Geoloc</h2><small>retrouve les joueurs qui partagent leur position</small></div>
-          <div class="map-wrap"><div id="map"></div></div>
-          <div class="row" style="margin-top:14px;">
-            <button class="btn btn-blue" id="geoBtn">Partager ma position</button>
-            <button class="btn btn-secondary" id="rdvBtn">Definir le point de rendez-vous</button>
+        <section class="panel utility-panel">
+          <div class="section-head"><h2>Outils de room</h2><small>utile sans alourdir le lobby</small></div>
+          <div class="utility-tabs">
+            <button class="utility-tab active" data-utility-tab="map">Carte</button>
+            <button class="utility-tab" data-utility-tab="scores">Scores</button>
+            <button class="utility-tab" data-utility-tab="sounds">Sounds</button>
           </div>
-          <div class="geo-list" id="geoList"><div class="empty">Les joueurs qui partagent leur position apparaitront ici avec leur distance.</div></div>
+
+          <div class="utility-view active" id="utility-map">
+            <div class="map-wrap"><div id="map"></div></div>
+            <div class="row" style="margin-top:14px;">
+              <button class="btn btn-blue" id="geoBtn">Partager ma position</button>
+              <button class="btn btn-secondary" id="rdvBtn">Definir le point de rendez-vous</button>
+            </div>
+            <div class="geo-list" id="geoList"><div class="empty">Les joueurs qui partagent leur position apparaitront ici avec leur distance.</div></div>
+          </div>
+
+          <div class="utility-view" id="utility-scores">
+            <div class="score-list" id="scoreList"><div class="empty">Les points apparaitront ici au fil des manches.</div></div>
+          </div>
+
+          <div class="utility-view" id="utility-sounds">
+            <div class="sound-grid">
+              <button class="sound" data-sound="horn"><strong>Air Horn</strong><span>annonce victoire</span></button>
+              <button class="sound" data-sound="wow"><strong>Ohhh</strong><span>surprise reveal</span></button>
+              <button class="sound" data-sound="drum"><strong>Drum Roll</strong><span>avant le verdict</span></button>
+              <button class="sound" data-sound="fail"><strong>Fail</strong><span>vote rate</span></button>
+            </div>
+          </div>
         </section>
       </div>
 
-      <div class="stack">
-        <section class="panel">
-          <div class="section-head"><h3>Chat live</h3><small>les joueurs attendent ici</small></div>
-          <div class="chat-list" id="chatList"><div class="empty">Pas encore de messages. Lance la room et fais patienter la team ici.</div></div>
+      <div class="stack social-rail">
+        <section class="panel support-hidden">
+          <div class="chat-list" id="chatList"><div class="empty">Pas encore de messages.</div></div>
           <div class="stack" style="gap:12px; margin-top:12px;">
             <textarea class="textarea" id="chatInput" placeholder="Envoie un message a toute la room..."></textarea>
             <button class="btn btn-primary" id="chatBtn">Envoyer</button>
           </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-head"><h3>Suggestions</h3><small>les joueurs peuvent proposer</small></div>
           <div class="suggestions" id="suggestionsList"><div class="empty">Les joueurs peuvent suggerer un jeu, une question, une idee ou un defi.</div></div>
           <div class="stack" style="gap:12px; margin-top:12px;">
             <textarea class="textarea" id="suggestInput" placeholder="Ex: verite plus spicy, meilleur defi, autre jeu, autre spot de rendez-vous..."></textarea>
             <button class="btn btn-pink" id="suggestBtn">Envoyer ma suggestion</button>
           </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-head"><h3>Soundboard</h3><small>ambiance rapide</small></div>
-          <div class="sound-grid">
-            <button class="sound" data-sound="horn"><strong>Air Horn</strong><span>annonce victoire</span></button>
-            <button class="sound" data-sound="wow"><strong>Ohhh</strong><span>surprise reveal</span></button>
-            <button class="sound" data-sound="drum"><strong>Drum Roll</strong><span>avant le verdict</span></button>
-            <button class="sound" data-sound="fail"><strong>Fail</strong><span>vote rate</span></button>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-head"><h3>Scoreboard</h3><small>temps reel</small></div>
-          <div class="score-list" id="scoreList"><div class="empty">Les points apparaitront ici au fil des manches.</div></div>
         </section>
       </div>
     </div>
@@ -425,6 +717,7 @@
 
     const ui = {
       toast: byId("toast"),
+      appShell: byId("appShell"),
       connDot: byId("connDot"),
       connLabel: byId("connLabel"),
       pseudoInput: byId("pseudoInput"),
@@ -435,9 +728,14 @@
       copyBtn: byId("copyBtn"),
       shareBtn: byId("shareBtn"),
       leaveBtn: byId("leaveBtn"),
+      sidebarLeaveBtn: byId("sidebarLeaveBtn"),
       roomCode: byId("roomCode"),
+      sidebarRoomCode: byId("sidebarRoomCode"),
+      sidebarCopyBtn: byId("sidebarCopyBtn"),
+      sidebarShareBtn: byId("sidebarShareBtn"),
       playersList: byId("playersList"),
       playersCount: byId("playersCount"),
+      sidebarPlayersList: byId("sidebarPlayersList"),
       statPlayers: byId("statPlayers"),
       statMessages: byId("statMessages"),
       statSuggestions: byId("statSuggestions"),
@@ -454,19 +752,30 @@
       chatList: byId("chatList"),
       chatInput: byId("chatInput"),
       chatBtn: byId("chatBtn"),
+      sidebarChatList: byId("sidebarChatList"),
+      sidebarChatInput: byId("sidebarChatInput"),
+      sidebarChatBtn: byId("sidebarChatBtn"),
       suggestionsList: byId("suggestionsList"),
       suggestInput: byId("suggestInput"),
       suggestBtn: byId("suggestBtn"),
+      sidebarSuggestionsList: byId("sidebarSuggestionsList"),
+      sidebarSuggestInput: byId("sidebarSuggestInput"),
+      sidebarSuggestBtn: byId("sidebarSuggestBtn"),
       scoreList: byId("scoreList"),
       lobbyScreen: byId("lobbyScreen"),
       gameScreen: byId("gameScreen"),
+      gameLeaveBtn: byId("gameLeaveBtn"),
       gameTitle: byId("gameTitle"),
       gameFocusName: byId("gameFocusName"),
       gameQuestion: byId("gameQuestion"),
       gameTimer: byId("gameTimer"),
+      voteProgressText: byId("voteProgressText"),
+      voteProgressPercent: byId("voteProgressPercent"),
+      voteProgressFill: byId("voteProgressFill"),
       questionCard: byId("questionCard"),
       gameMainPanel: byId("gameMainPanel"),
       gameSidePanel: byId("gameSidePanel"),
+      playersPill: byId("playersPill"),
       geoBtn: byId("geoBtn"),
       rdvBtn: byId("rdvBtn"),
       geoList: byId("geoList")
@@ -491,9 +800,15 @@
       ui.joinBtn.addEventListener("click", joinRoom);
       ui.copyBtn.addEventListener("click", copyRoomCode);
       ui.shareBtn.addEventListener("click", shareRoom);
+      ui.sidebarCopyBtn.addEventListener("click", copyRoomCode);
+      ui.sidebarShareBtn.addEventListener("click", shareRoom);
       ui.leaveBtn.addEventListener("click", leaveRoom);
+      ui.sidebarLeaveBtn.addEventListener("click", leaveRoom);
+      ui.gameLeaveBtn.addEventListener("click", leaveRoom);
       ui.chatBtn.addEventListener("click", sendChat);
+      ui.sidebarChatBtn.addEventListener("click", () => sendChat(true));
       ui.suggestBtn.addEventListener("click", sendSuggestion);
+      ui.sidebarSuggestBtn.addEventListener("click", () => sendSuggestion(true));
       ui.nextBtn.addEventListener("click", nextStep);
       ui.exitBtn.addEventListener("click", exitToLobby);
       ui.geoBtn.addEventListener("click", shareLocation);
@@ -509,6 +824,24 @@
         button.addEventListener("click", () => launchGame(button.dataset.game));
       });
 
+      document.querySelectorAll("[data-lobby-tab]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-lobby-tab]").forEach((tab) => tab.classList.remove("active"));
+          document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
+          button.classList.add("active");
+          byId("tab-" + button.dataset.lobbyTab).classList.add("active");
+        });
+      });
+
+      document.querySelectorAll("[data-utility-tab]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-utility-tab]").forEach((tab) => tab.classList.remove("active"));
+          document.querySelectorAll(".utility-view").forEach((panel) => panel.classList.remove("active"));
+          button.classList.add("active");
+          byId("utility-" + button.dataset.utilityTab).classList.add("active");
+        });
+      });
+
       document.querySelectorAll("[data-sound]").forEach((button) => {
         button.addEventListener("click", () => playSound(button.dataset.sound));
       });
@@ -519,11 +852,13 @@
         firebase.initializeApp(firebaseConfig);
         state.db = firebase.app().database(firebaseConfig.databaseURL);
         state.firebaseReady = true;
+        ui.connDot.textContent = "●";
         ui.connLabel.textContent = "Firebase online";
         ui.connDot.style.color = "var(--green)";
       } catch (error) {
         console.warn(error);
         state.firebaseReady = false;
+        ui.connDot.textContent = "●";
         ui.connLabel.textContent = "Mode local";
         ui.connDot.style.color = "var(--danger)";
       }
@@ -716,8 +1051,9 @@
       renderAll();
     }
 
-    function sendChat() {
-      const text = ui.chatInput.value.trim();
+    function sendChat(fromSidebar = false) {
+      const input = fromSidebar ? ui.sidebarChatInput : ui.chatInput;
+      const text = input.value.trim();
       if (!text || !state.roomCode || !state.firebaseReady) return;
       const id = "msg_" + Date.now() + "_" + randomId(4);
       state.db.ref("rooms/" + state.roomCode + "/chat/" + id).set({
@@ -727,12 +1063,13 @@
         text,
         createdAt: Date.now()
       }).then(() => {
-        ui.chatInput.value = "";
+        input.value = "";
       });
     }
 
-    function sendSuggestion() {
-      const text = ui.suggestInput.value.trim();
+    function sendSuggestion(fromSidebar = false) {
+      const input = fromSidebar ? ui.sidebarSuggestInput : ui.suggestInput;
+      const text = input.value.trim();
       if (!text || !state.roomCode || !state.firebaseReady) return;
       const id = "sug_" + Date.now() + "_" + randomId(4);
       state.db.ref("rooms/" + state.roomCode + "/suggestions/" + id).set({
@@ -742,7 +1079,7 @@
         text,
         createdAt: Date.now()
       }).then(() => {
-        ui.suggestInput.value = "";
+        input.value = "";
         toast("Suggestion envoyee");
       });
     }
@@ -999,7 +1336,7 @@
         return currentScore(b.id) - currentScore(a.id);
       });
       ui.playersCount.textContent = players.length + " connectes";
-      ui.playersList.innerHTML = players.length
+      const markup = players.length
         ? players.map((player) => `
             <div class="player">
               <div class="avatar">
@@ -1013,13 +1350,21 @@
             </div>
           `).join("")
         : '<div class="empty">Cree une room pour voir les joueurs apparaitre ici.</div>';
+      ui.playersList.innerHTML = markup;
+      ui.sidebarPlayersList.innerHTML = markup;
+      if (ui.playersPill) {
+        ui.playersPill.textContent = players.length + " joueurs";
+      }
     }
 
     function renderLobby() {
       const meta = state.room && state.room.meta ? state.room.meta : null;
       const host = state.room && state.room.hostId && state.players[state.room.hostId];
       ui.roomCode.textContent = state.roomCode || "----";
+      ui.sidebarRoomCode.textContent = state.roomCode || "----";
       ui.hostBadge.textContent = "Host: " + (host ? host.pseudo : "aucun");
+      ui.appShell.classList.toggle("room-active", !!state.roomCode);
+      ui.appShell.classList.toggle("pre-room", !state.roomCode);
       ui.nextBtn.disabled = !state.isHost;
       ui.exitBtn.disabled = !state.isHost;
       document.querySelectorAll("[data-game]").forEach((button) => {
@@ -1042,7 +1387,8 @@
     function renderChat() {
       const messages = state.room && state.room.chat ? Object.values(state.room.chat).sort((a, b) => a.createdAt - b.createdAt) : [];
       ui.chatBtn.disabled = !state.roomCode || !state.firebaseReady;
-      ui.chatList.innerHTML = messages.length
+      ui.sidebarChatBtn.disabled = !state.roomCode || !state.firebaseReady;
+      const markup = messages.length
         ? messages.map((message) => `
             <div class="message">
               <strong>${escapeHtml(message.pseudo || "Joueur")}</strong>
@@ -1051,13 +1397,17 @@
             </div>
           `).join("")
         : '<div class="empty">Pas encore de messages. Lance la room et fais patienter la team ici.</div>';
+      ui.chatList.innerHTML = markup;
+      ui.sidebarChatList.innerHTML = markup;
       ui.chatList.scrollTop = ui.chatList.scrollHeight;
+      ui.sidebarChatList.scrollTop = ui.sidebarChatList.scrollHeight;
     }
 
     function renderSuggestions() {
       const suggestions = state.room && state.room.suggestions ? Object.values(state.room.suggestions).sort((a, b) => b.createdAt - a.createdAt) : [];
       ui.suggestBtn.disabled = !state.roomCode || !state.firebaseReady;
-      ui.suggestionsList.innerHTML = suggestions.length
+      ui.sidebarSuggestBtn.disabled = !state.roomCode || !state.firebaseReady;
+      const markup = suggestions.length
         ? suggestions.map((item) => `
             <div class="suggestion">
               <strong>${escapeHtml(item.pseudo || "Joueur")}</strong>
@@ -1066,6 +1416,8 @@
             </div>
           `).join("")
         : '<div class="empty">Les joueurs peuvent suggerer un jeu, une question, une idee ou un defi.</div>';
+      ui.suggestionsList.innerHTML = markup;
+      ui.sidebarSuggestionsList.innerHTML = markup;
     }
 
     function renderScores() {
@@ -1088,9 +1440,465 @@
           `).join("")
         : '<div class="empty">Les points apparaitront ici au fil des manches.</div>';
     }
-  </script>
-</body>
-</html>
+
+    function renderGame() {
+      const meta = state.room && state.room.meta ? state.room.meta : null;
+      const game = meta ? meta.game : "lobby";
+      const inLobby = game === "lobby";
+      ui.lobbyScreen.classList.toggle("hidden", !inLobby);
+      ui.gameScreen.classList.toggle("hidden", inLobby);
+      ui.gameScreen.classList.toggle("active", !inLobby);
+      ui.statMode.textContent = gameName(game);
+
+      if (inLobby) {
+        renderVoteProgress();
+        renderTimers();
+        return;
+      }
+
+      ui.gameTitle.textContent = gameName(game);
+      ui.gameFocusName.textContent = meta && meta.targetName ? meta.targetName : "Tout le monde";
+      ui.gameQuestion.textContent = meta && meta.question ? meta.question : "Le groupe suit la meme manche.";
+      ui.questionCard.textContent = meta && meta.question ? meta.question : "En attente de la prochaine manche.";
+
+      if (game === "truth") {
+        renderTruthPanel();
+      } else if (game === "photo") {
+        renderPhotoPanel();
+      } else if (game === "geo") {
+        renderGeoPanel();
+      } else {
+        renderStoryPanel();
+      }
+
+      renderVoteProgress();
+      renderTimers();
+    }
+
+    function renderVoteProgress() {
+      const game = state.room && state.room.meta ? state.room.meta.game : "lobby";
+      const total = Object.keys(state.players || {}).length || 0;
+      let voted = 0;
+
+      if (game === "photo") {
+        voted = state.room && state.room.gameData && state.room.gameData.photoRound && state.room.gameData.photoRound.votes
+          ? Object.keys(state.room.gameData.photoRound.votes).length
+          : 0;
+      } else if (game === "truth") {
+        voted = state.room && state.room.gameData && state.room.gameData.truthVotes
+          ? Object.keys(state.room.gameData.truthVotes).length
+          : 0;
+      } else {
+        voted = 0;
+      }
+
+      const percent = total ? Math.round((voted / total) * 100) : 0;
+      ui.voteProgressText.textContent = voted + " / " + total + " a vote";
+      ui.voteProgressPercent.textContent = percent + "%";
+      ui.voteProgressFill.style.width = percent + "%";
+    }
+
+    function renderTruthPanel() {
+      const votes = state.room && state.room.gameData && state.room.gameData.truthVotes
+        ? Object.values(state.room.gameData.truthVotes)
+        : [];
+      ui.gameMainPanel.innerHTML = `
+        <h4>Question / action</h4>
+        <div class="question-card">${escapeHtml(state.room.meta.question || "En attente")}</div>
+      `;
+      ui.gameSidePanel.innerHTML = `
+        <h4>Vote de categorie</h4>
+        <div class="action-grid">
+          <button class="choice ${state.room.meta.truthMode === "action" ? "selected" : ""}" data-truth-choice="action">
+            <strong>Action</strong>
+            <span class="hint">Choisir cette categorie</span>
+          </button>
+          <button class="choice ${state.room.meta.truthMode === "verite" ? "selected" : ""}" data-truth-choice="verite">
+            <strong>Verite</strong>
+            <span class="hint">Choisir cette categorie</span>
+          </button>
+        </div>
+        <div class="photo-votes" style="margin-top:14px;">
+          ${
+            votes.length
+              ? votes.map((vote) => `
+                  <div class="photo-vote-row">
+                    <div>
+                      <strong>${escapeHtml(vote.pseudo)}</strong>
+                      <span class="hint">a choisi ${escapeHtml(vote.choice)}</span>
+                    </div>
+                    <div class="status-pill">vote</div>
+                  </div>
+                `).join("")
+              : '<div class="empty">Les votes de categorie apparaitront ici.</div>'
+          }
+        </div>
+      `;
+
+      ui.gameSidePanel.querySelectorAll("[data-truth-choice]").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (!state.roomCode || !state.firebaseReady) return;
+          state.db.ref("rooms/" + state.roomCode + "/gameData/truthVotes/" + state.playerId).set({
+            choice: button.dataset.truthChoice,
+            pseudo: state.pseudo,
+            createdAt: Date.now()
+          });
+        });
+      });
+    }
+
+    function renderPhotoPanel() {
+      const photoRound = state.room && state.room.gameData && state.room.gameData.photoRound
+        ? state.room.gameData.photoRound
+        : { activePhotoId: "", votes: {} };
+      const activePhoto = state.room && state.room.photos && photoRound.activePhotoId
+        ? state.room.photos[photoRound.activePhotoId]
+        : null;
+      const votes = Object.values(photoRound.votes || {}).sort((a, b) => a.createdAt - b.createdAt);
+
+      ui.gameMainPanel.innerHTML = `
+        <h4>Photo active</h4>
+        <div class="upload-box">
+          <p class="hint" style="margin-bottom:10px;">Ajoute ta photo puis attends le reveal collectif.</p>
+          <input class="input" id="roundPhotoInput" type="file" accept="image/*" />
+          <button class="btn btn-primary" id="sendPhotoBtn" style="margin-top:12px;">Envoyer ma photo</button>
+        </div>
+        <div class="photo-box">
+          ${
+            activePhoto && activePhoto.image
+              ? `<img alt="Photo active" src="${safeAttr(activePhoto.image)}">`
+              : `<div class="empty" style="width:100%;">La photo active apparaitra ici.</div>`
+          }
+        </div>
+      `;
+
+      ui.gameSidePanel.innerHTML = `
+        <h4>Vote photo</h4>
+        <div class="photo-options">
+          ${Object.values(state.players || {}).map((player) => `
+            <button class="choice ${state.selectedPhotoVote === player.id ? "selected" : ""}" data-photo-choice="${player.id}">
+              <strong>${escapeHtml(player.pseudo)}</strong>
+              <span class="hint">${player.id === state.playerId ? "Toi" : "Participant"}</span>
+            </button>
+          `).join("")}
+        </div>
+        <button class="btn btn-secondary" id="confirmPhotoVoteBtn" style="margin-top:12px;">Confirmer mon vote</button>
+        <div class="photo-votes" style="margin-top:14px;">
+          ${
+            votes.length
+              ? votes.map((vote) => `
+                  <div class="photo-vote-row">
+                    <div>
+                      <strong>${escapeHtml(vote.pseudo)}</strong>
+                      <span class="hint">a vote pour ${escapeHtml(state.players[vote.guessedPlayerId] ? state.players[vote.guessedPlayerId].pseudo : "?")}</span>
+                    </div>
+                    <div class="status-pill">vote</div>
+                  </div>
+                `).join("")
+              : '<div class="empty">Les votes en direct apparaitront ici.</div>'
+          }
+        </div>
+      `;
+
+      byId("roundPhotoInput").addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          state.photoData = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      byId("sendPhotoBtn").addEventListener("click", () => {
+        if (!state.photoData) return toast("Choisis une photo");
+        if (!state.roomCode || !state.firebaseReady) return;
+        state.db.ref("rooms/" + state.roomCode + "/photos/" + state.playerId).set({
+          playerId: state.playerId,
+          pseudo: state.pseudo,
+          image: state.photoData,
+          createdAt: Date.now()
+        }).then(() => {
+          toast("Photo envoyee");
+          if (state.isHost && !photoRound.activePhotoId) {
+            nextPhotoRound();
+          }
+        });
+      });
+
+      ui.gameSidePanel.querySelectorAll("[data-photo-choice]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedPhotoVote = button.dataset.photoChoice;
+          renderPhotoPanel();
+        });
+      });
+
+      byId("confirmPhotoVoteBtn").addEventListener("click", () => {
+        if (!state.selectedPhotoVote) return toast("Choisis un joueur");
+        if (!state.roomCode || !state.firebaseReady) return;
+        state.db.ref("rooms/" + state.roomCode + "/gameData/photoRound/votes/" + state.playerId).set({
+          guessedPlayerId: state.selectedPhotoVote,
+          pseudo: state.pseudo,
+          createdAt: Date.now()
+        }).then(() => toast("Vote envoye"));
+      });
+    }
+
+    function renderGeoPanel() {
+      const geo = state.room && state.room.geo ? state.room.geo : {};
+      ui.gameMainPanel.innerHTML = `
+        <h4>Mission</h4>
+        <div class="question-card">${escapeHtml(state.room.meta.question || "Partage ta position.")}</div>
+      `;
+      ui.gameSidePanel.innerHTML = `
+        <h4>Equipe en mouvement</h4>
+        <div class="photo-votes">
+          ${
+            Object.keys(geo).length
+              ? Object.keys(geo).map((id) => `
+                  <div class="photo-vote-row">
+                    <div>
+                      <strong>${escapeHtml(state.players[id] ? state.players[id].pseudo : "Joueur")}</strong>
+                      <span class="hint">${id === state.playerId ? "toi" : distanceToPlayerText(id)}</span>
+                    </div>
+                    <div class="status-pill">live</div>
+                  </div>
+                `).join("")
+              : '<div class="empty">Les joueurs qui partagent leur position apparaitront ici.</div>'
+          }
+        </div>
+      `;
+    }
+
+    function renderStoryPanel() {
+      ui.gameMainPanel.innerHTML = `
+        <h4>Anecdote</h4>
+        <div class="question-card">${escapeHtml(state.room.meta.question || "Nouvelle anecdote")}</div>
+      `;
+      ui.gameSidePanel.innerHTML = `
+        <h4>Vote du groupe</h4>
+        <div class="empty">Le groupe suit la meme anecdote. Le vote collectif peut etre ajoute ensuite.</div>
+      `;
+    }
+
+    function renderGeo() {
+      const geo = state.room && state.room.geo ? state.room.geo : {};
+      clearMarkers();
+      Object.keys(geo).forEach((id) => {
+        const point = geo[id];
+        const label = state.players[id] ? state.players[id].pseudo : "Joueur";
+        const marker = L.marker([point.lat, point.lng]).addTo(state.map);
+        marker.bindPopup(escapeHtml(label));
+        state.markers[id] = marker;
+      });
+
+      const rendezvous = state.room && state.room.meta ? state.room.meta.rendezvous : null;
+      if (rendezvous) {
+        state.rendezvousMarker = L.circleMarker([rendezvous.lat, rendezvous.lng], {
+          radius: 10,
+          color: "#b1ff66",
+          fillColor: "#b1ff66",
+          fillOpacity: 0.8
+        }).addTo(state.map);
+      }
+
+      if (Object.keys(geo).length) {
+        const bounds = L.latLngBounds(Object.keys(geo).map((id) => [geo[id].lat, geo[id].lng]));
+        if (rendezvous) bounds.extend([rendezvous.lat, rendezvous.lng]);
+        state.map.fitBounds(bounds.pad(0.35));
+      }
+
+      ui.geoList.innerHTML = Object.keys(geo).length
+        ? Object.keys(geo).map((id) => `
+            <div class="geo-row">
+              <div>
+                <strong>${escapeHtml(state.players[id] ? state.players[id].pseudo : "Joueur")}</strong>
+                <span class="hint">${id === state.playerId ? "toi" : distanceToPlayerText(id)}</span>
+              </div>
+              <div class="status-pill">${id === state.playerId ? "MOI" : "LIVE"}</div>
+            </div>
+          `).join("")
+        : '<div class="empty">Les joueurs qui partagent leur position apparaitront ici avec leur distance.</div>';
+    }
+
+    function renderStats() {
+      ui.statPlayers.textContent = String(Object.keys(state.players || {}).length);
+      ui.statMessages.textContent = String(state.room && state.room.chat ? Object.keys(state.room.chat).length : 0);
+      ui.statSuggestions.textContent = String(state.room && state.room.suggestions ? Object.keys(state.room.suggestions).length : 0);
+    }
+
+    function renderTimers() {
+      const meta = state.room && state.room.meta ? state.room.meta : null;
+      const left = meta && meta.timerEndsAt ? Math.max(0, Math.ceil((meta.timerEndsAt - Date.now()) / 1000)) : 0;
+      ui.sharedTimer.textContent = String(left).padStart(2, "0");
+      ui.gameTimer.textContent = String(left).padStart(2, "0");
+    }
+
+    function initMap() {
+      try {
+        state.map = L.map("map", { zoomControl: true, attributionControl: true }).setView([48.8566, 2.3522], 5);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "&copy; OpenStreetMap"
+        }).addTo(state.map);
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+
+    function clearMarkers() {
+      if (!state.map) return;
+      Object.values(state.markers).forEach((marker) => state.map.removeLayer(marker));
+      state.markers = {};
+      if (state.rendezvousMarker) {
+        state.map.removeLayer(state.rendezvousMarker);
+        state.rendezvousMarker = null;
+      }
+    }
+
+    function distanceToPlayerText(id) {
+      const geo = state.room && state.room.geo ? state.room.geo : {};
+      const me = geo[state.playerId];
+      const other = geo[id];
+      if (!me || !other || id === state.playerId) return "position partagee";
+      const distance = haversine(me.lat, me.lng, other.lat, other.lng);
+      return distance < 1 ? Math.round(distance * 1000) + " m" : distance.toFixed(1) + " km";
+    }
+
+    function currentScore(id) {
+      return state.room && state.room.scores && state.room.scores[id] ? state.room.scores[id] : 0;
+    }
+
+    function playSound(kind) {
+      try {
+        if (!state.audioContext) {
+          state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const ctx = state.audioContext;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.04;
+        gain.connect(ctx.destination);
+        const now = ctx.currentTime;
+        if (kind === "drum") {
+          pulseTone(ctx, gain, now, 130, 0.08, "triangle");
+          pulseTone(ctx, gain, now + 0.09, 210, 0.08, "triangle");
+          pulseTone(ctx, gain, now + 0.18, 320, 0.08, "triangle");
+        } else if (kind === "fail") {
+          pulseTone(ctx, gain, now, 260, 0.14, "sawtooth");
+          pulseTone(ctx, gain, now + 0.12, 180, 0.2, "sawtooth");
+        } else if (kind === "horn") {
+          pulseTone(ctx, gain, now, 520, 0.12, "square");
+          pulseTone(ctx, gain, now + 0.05, 660, 0.16, "square");
+        } else {
+          pulseTone(ctx, gain, now, 480, 0.08, "sine");
+          pulseTone(ctx, gain, now + 0.08, 720, 0.12, "sine");
+        }
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+
+    function pulseTone(ctx, destination, start, frequency, duration, type) {
+      const oscillator = ctx.createOscillator();
+      const envelope = ctx.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, start);
+      envelope.gain.setValueAtTime(0.001, start);
+      envelope.gain.exponentialRampToValueAtTime(1, start + 0.02);
+      envelope.gain.exponentialRampToValueAtTime(0.001, start + duration);
+      oscillator.connect(envelope);
+      envelope.connect(destination);
+      oscillator.start(start);
+      oscillator.stop(start + duration);
+    }
+
+    function copyRoomCode() {
+      if (!state.roomCode) return toast("Aucune room active");
+      navigator.clipboard.writeText(state.roomCode).then(() => toast("Code copie: " + state.roomCode)).catch(() => toast("Copie manuelle: " + state.roomCode));
+    }
+
+    function shareRoom() {
+      if (!state.roomCode) return toast("Cree une room d'abord");
+      const url = location.origin + location.pathname.replace(/index\.html$/, "") + "?room=" + encodeURIComponent(state.roomCode);
+      const text = "Rejoins ma room NightPlay " + state.roomCode + " : " + url;
+      if (navigator.share) {
+        navigator.share({ title: "NightPlay", text, url }).catch(() => {});
+        return;
+      }
+      navigator.clipboard.writeText(text).then(() => toast("Lien de room copie"));
+    }
+
+    function gameName(game) {
+      if (game === "truth") return "Action ou Verite";
+      if (game === "photo") return "Photo Roulette";
+      if (game === "story") return "Anecdote Vrai/Faux";
+      if (game === "geo") return "Retrouve ta team";
+      return "Salle d'attente";
+    }
+
+    function formatTime(timestamp) {
+      if (!timestamp) return "";
+      return new Date(timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function randomPlayer(players, exceptId) {
+      const filtered = (players || []).filter((player) => player.id !== exceptId);
+      const pool = filtered.length ? filtered : (players || []);
+      return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+    }
+
+    function randomFrom(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function generateCode() {
+      return randomId(4);
+    }
+
+    function randomId(length) {
+      return Math.random().toString(36).slice(2, 2 + length).toUpperCase();
+    }
+
+    function restoreOrCreatePlayerId() {
+      const stored = localStorage.getItem("nightplay-player-id");
+      if (stored) return stored;
+      const fresh = "P" + randomId(8);
+      localStorage.setItem("nightplay-player-id", fresh);
+      return fresh;
+    }
+
+    function byId(id) {
+      return document.getElementById(id);
+    }
+
+    function toast(message) {
+      ui.toast.textContent = message;
+      ui.toast.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => {
+        ui.toast.classList.remove("show");
+      }, 2300);
+    }
+
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function toRad(value) {
+      return value * Math.PI / 180;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function safeAttr(value) {
+      return String(value).replace(/"/g, "&quot;");
+    }
   </script>
 </body>
 </html>

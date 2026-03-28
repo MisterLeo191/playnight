@@ -1,11 +1,11 @@
 {
   "name": "NightPlay",
   "short_name": "NightPlay",
-  "description": "Party game collectif en ligne avec Firebase et Vercel.",
+  "description": "NightPlay, lobby party game responsive avec chat, host control et jeux collectifs.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0b0f17",
-  "theme_color": "#10131d",
+  "background_color": "#f6f1e8",
+  "theme_color": "#f6f1e8",
   "lang": "fr",
   "icons": [
     {
